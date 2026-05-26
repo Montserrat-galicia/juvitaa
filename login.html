@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso VIP - Juvita</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f9f9f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-caja { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; border-top: 5px solid var(--rojo-coral); }
+        .login-input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        .login-btn { background-color: var(--rojo-coral); color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 15px; }
+        .login-btn:hover { background-color: #d14b5e; }
+    </style>
+</head>
+<body>
+
+    <div class="login-caja">
+        <h2 style="color: var(--negro-texto); margin-bottom: 5px;">Panel Administrativo</h2>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Ingresa tus credenciales para continuar</p>
+        
+        <form id="form-login">
+            <input type="text" id="usuario" class="login-input" placeholder="Usuario" required autocomplete="off">
+            <input type="password" id="password" class="login-input" placeholder="Contraseña" required>
+            <button type="submit" class="login-btn">Entrar al Sistema</button>
+        </form>
+        <p id="mensaje-error" style="color: red; display: none; font-size: 0.9rem; margin-top: 15px;">Credenciales incorrectas.</p>
+    </div>
+
+    <script>
+        document.getElementById('form-login').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Evita que la página recargue al dar enter
+            
+            const u = document.getElementById('usuario').value;
+            const p = document.getElementById('password').value;
+            const msjError = document.getElementById('mensaje-error');
+
+            try {
+                const respuesta = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: u, password: p })
+                });
+
+                const resultado = await respuesta.json();
+
+                if (resultado.exito) {
+                    // 🎟️ ¡AQUÍ ESTÁ LA MAGIA! Guardamos el pase VIP en el navegador
+                    sessionStorage.setItem('juvita_vip', 'autorizado');
+                    // Lo mandamos al dashboard
+                    window.location.href = '/paginas/dashboard.html';
+                } else {
+                    msjError.style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Error en login:", error);
+                alert("Error de conexión con el servidor.");
+            }
+        });
+    </script>
+</body>
+</html>

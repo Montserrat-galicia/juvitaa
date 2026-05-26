@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juvita Universitaria - Catálogo</title>
+    <!-- 1. Enlace a los estilos de Montse -->
+    <link rel="stylesheet" href="../css/variables.css">
+</head>
+<body>
+    <header style="border-bottom: 2px solid var(--rojo-coral); padding: 20px; background-color: white;">
+        <h1 style="margin: 0; color: var(--negro-texto);">Juvita Universitaria</h1>
+        <nav style="margin-top: 10px;">
+            <a href="/paginas/index.html" style="text-decoration: none; color: var(--rojo-coral); font-weight: bold; margin-right: 15px;">🛍️ Catálogo</a>
+            <a href="/paginas/deseos.html" style="text-decoration: none; color: var(--rojo-coral); font-weight: bold; margin-right: 15px;">💖 Mis Deseos</a>
+            <a href="/paginas/carrito.html" id="nav-carrito" style="text-decoration: none; color: var(--rojo-coral); font-weight: bold;">🛒 Mi Carrito (0)</a>
+        </nav>
+    </header>
+
+    <!-- 2. Contenedor donde aparecerán los productos de la BD -->
+   <main>
+    <div id="contenedor-categorias" style="text-align: center; margin: 20px 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+        </div>
+
+    <div id="contenedor-productos" class="contenedor-grid">
+        <p>Cargando catálogo...</p>
+    </div>
+    </main>
+    <script src="../js/controladores/Deseos.js"></script>
+    <script src="../js/controladores/Carrito.js"></script>
+
+    <script>
+        // Variables globales para mantener el estado de los datos
+        let todosLosProductos = []; 
+
+        // 1. Dibujar las tarjetas en la pantalla
+        // 1. Dibujar las tarjetas en la pantalla (index.html)
+        function renderizarProductos(productos) {
+            const contenedor = document.getElementById('contenedor-productos');
+            contenedor.innerHTML = productos.length === 0 ? "<p>No hay productos en esta categoria.</p>" : "";
+
+            productos.forEach(p => {
+                const tarjeta = `
+                    <div class="card-producto">
+                        <img src="${p.imagenUrlProducto || 'https://via.placeholder.com/150'}" alt="${p.nombreProducto}">
+                        <h3>${p.nombreProducto}</h3>
+                        <p class="precio">$${p.precioProducto}</p>
+                    
+                        <div style="margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                            <label for="cant-${p.idProducto}" style="font-size: 0.9rem; color: #555;">Cant:</label>
+                            <input type="number" id="cant-${p.idProducto}" value="1" min="1" max="${p.stockProducto}" 
+                                style="width: 50px; padding: 5px; text-align: center; border: 1px solid var(--rosa-pastel); border-radius: 4px;">
+                        </div>
+                    
+                        <button class="boton-accion" onclick="procesarAgregarDeGolpe(${p.idProducto}, '${p.nombreProducto}', ${p.precioProducto}, ${p.stockProducto}, '${p.imagenUrlProducto || ''}')">
+                             Agregar
+                        </button>
+                    
+                        <button onclick="agregarADeseos(${p.idProducto}, '${p.nombreProducto}', ${p.precioProducto}, ${p.stockProducto}, '${p.imagenUrlProducto || ''}')" 
+                                style="background:none; border:none; cursor:pointer; font-size: 1.5rem; display:block; margin: 10px auto;">
+                            💖
+                        </button>
+                    </div>
+                `;
+                contenedor.innerHTML += tarjeta;
+            });
+        }
+
+        // 2. Crear los botones de categoria dinamicamente
+        function generarBotonesCategorias() {
+            const contenedorCat = document.getElementById('contenedor-categorias');
+            
+            // Ahora leemos la columna 'nombreCategoria' que viene unida desde MySQL
+            const categorias = ['Todos', ...new Set(todosLosProductos.map(p => p.nombreCategoria || 'Sin Categoria'))];
+            
+            contenedorCat.innerHTML = ""; 
+
+            categorias.forEach(cat => {
+                const boton = document.createElement('button');
+                boton.innerText = cat;
+                
+                boton.style.cssText = "background-color: white; border: 2px solid var(--rosa-pastel); color: var(--negro-texto); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s;";
+                
+                boton.onmouseover = () => boton.style.backgroundColor = 'var(--rosa-pastel)';
+                boton.onmouseout = () => boton.style.backgroundColor = 'white';
+                
+                boton.onclick = () => filtrarPorCategoria(cat);
+                
+                contenedorCat.appendChild(boton);
+            });
+        }
+
+        // 3. Filtrar el arreglo en memoria
+        function filtrarPorCategoria(categoria) {
+            if (categoria === 'Todos') {
+                renderizarProductos(todosLosProductos);
+            } else {
+                // Comparamos usando nombreCategoria
+                const filtrados = todosLosProductos.filter(p => p.nombreCategoria === categoria);
+                renderizarProductos(filtrados);
+            }
+        }
+
+        // Agregamos el parámetro imagenUrlProducto
+        function procesarAgregarDeGolpe(id, nombre, precio, stockDisponible, imagenUrlProducto) {
+            const inputCantidad = document.getElementById(`cant-${id}`);
+            const cantidadAgregar = parseInt(inputCantidad.value) || 1;
+        
+            if (cantidadAgregar < 1) {
+                alert("La cantidad minima a agregar debe ser 1.");
+                return;
+            }
+        
+            agregarAlCarrito(id, nombre, precio, stockDisponible, cantidadAgregar, imagenUrlProducto);
+        
+            inputCantidad.value = 1;
+        }
+
+        // 5. Lógica de conexion al servidor
+        async function cargarDesdeServidor() {
+            try {
+                const respuesta = await fetch('/api/productos');
+                if (!respuesta.ok) throw new Error("Error en la respuesta del servidor");
+            
+                todosLosProductos = await respuesta.json(); 
+            
+                renderizarProductos(todosLosProductos); 
+                generarBotonesCategorias(); 
+            
+                if (typeof actualizarContadorMenu === 'function') {
+                    actualizarContadorMenu();
+                }
+            } catch (error) {
+                console.error("Error al conectar con la API:", error);
+                document.getElementById('contenedor-productos').innerHTML = 
+                    "<p>No se pudo conectar con la base de datos. Verifica que el servidor este encendido.</p>";
+            }
+        }
+
+        window.onload = cargarDesdeServidor;
+    </script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        if (sessionStorage.getItem('juvita_vip') !== 'autorizado') {
+            window.location.replace('/paginas/login.html');
+        }
+    </script>
+    
+    <meta charset="UTF-8">
+    <title>Panel de Control - Juvita</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <style>
+        /* Estilos específicos para la tabla de administración */
+        .tabla-admin { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .tabla-admin th { background-color: var(--rosa-pastel); color: var(--negro-texto); padding: 12px; text-align: left; }
+        .tabla-admin td { padding: 12px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+        .btn-descontar { background-color: #ffc107; color: black; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-descontar:hover { background-color: #e0a800; }
+    </style>
+</head>
+<body style="background-color: #f8f9fa; padding: 20px;">
+
+    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--rojo-coral); padding-bottom: 10px;">
+        <h1 style="color: var(--rojo-coral); margin: 0;">⚙️ Panel de Administración</h1>
+        <nav>
+            <a href="index.html" style="text-decoration: none; color: #6c757d; font-weight: bold;">Salir al Catálogo Público</a>
+        </nav>
+    </header>
+
+    <main>
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h2>Inventario Actual</h2>
+            <button onclick="abrirModalProducto()" style="background-color: var(--rojo-coral); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                 Subir Nuevo Producto
+            </button>
+        </div>
+
+        <div id="modal-nuevo-producto" class="modal-aviso-overlay" style="display: none;">
+            <div class="modal-aviso-box" style="max-width: 500px; text-align: left;">
+                <button class="modal-aviso-cerrar" onclick="cerrarModalProducto()">✕</button>
+                <h2 style="color: var(--rojo-coral); margin-bottom: 15px; text-align: center;">Agregar Producto</h2>
+                
+                <form id="form-nuevo-producto" onsubmit="enviarNuevoProducto(event)">
+                    <label style="font-weight: bold;">Nombre del cosmético:</label>
+                    <input type="text" id="nuevo-nombre" required style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+
+                    <label style="font-weight: bold;">Descripción:</label>
+                    <textarea id="nuevo-descripcion" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold;">Precio ($):</label>
+                            <input type="number" id="nuevo-precio" step="0.01" min="1" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold;">Stock Inicial:</label>
+                            <input type="number" id="nuevo-stock" min="1" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                        <label style="font-weight: bold; margin: 0;">ID Categoría:</label>
+                        <button type="button" onclick="mostrarAyudaCategorias()" style="background-color: var(--rosa-pastel); color: var(--negro-texto); border: 1px solid #ccc; border-radius: 50%; width: 22px; height: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;" title="Ver lista de categorías">
+                            +
+                        </button>
+                    </div>
+                    <input type="number" id="nuevo-categoria" min="1" required style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+
+                    <label style="font-weight: bold;">Subir Imagen (JPG/PNG):</label>
+                    <input type="file" id="nuevo-imagen" accept="image/png, image/jpeg" style="width: 100%; margin-bottom: 20px; padding: 5px;">
+
+                    <button type="submit" style="background-color: var(--rojo-coral); color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                         Guardar y Procesar Producto
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-editar-producto" class="modal-aviso-overlay" style="display: none;">
+            <div class="modal-aviso-box" style="max-width: 500px; text-align: left;">
+                <button class="modal-aviso-cerrar" onclick="cerrarModalEditar()">✕</button>
+                <h2 style="color: var(--rojo-coral); margin-bottom: 15px; text-align: center;">Editar Producto</h2>
+                
+                <form id="form-editar-producto" onsubmit="enviarEdicion(event)">
+                    <input type="hidden" id="editar-id">
+
+                    <label style="font-weight: bold;">Nombre del cosmético:</label>
+                    <input type="text" id="editar-nombre" required style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+
+                    <label style="font-weight: bold;">Descripción:</label>
+                    <textarea id="editar-descripcion" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+
+                   <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold;">Precio ($):</label>
+                            <input type="number" id="editar-precio" step="0.01" min="1" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold;">Stock Actual:</label>
+                            <input type="number" id="editar-stock" min="1" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <label style="font-weight: bold;">Actualizar Imagen (Opcional):</label>
+                    <input type="file" id="editar-imagen" accept="image/png, image/jpeg" style="width: 100%; margin-bottom: 20px; padding: 5px;">
+
+                    <button type="submit" style="background-color: var(--negro-texto); color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                         Guardar Cambios
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-eliminar-producto" class="modal-aviso-overlay" style="display: none;">
+            <div class="modal-aviso-box" style="max-width: 400px; text-align: center;">
+                <button class="modal-aviso-cerrar" onclick="cerrarModalEliminar()">✕</button>
+                <h2 style="color: red; margin-bottom: 15px;">Advertencia</h2>
+                
+                <p id="texto-eliminar" style="margin-bottom: 15px; color: var(--negro-texto);"></p>
+                
+                <form id="form-eliminar-producto" onsubmit="enviarEliminacion(event)">
+                    <input type="hidden" id="eliminar-id">
+                    
+                    <input type="password" id="eliminar-password" placeholder="Ingresa la contraseña maestra" required style="width: 100%; margin-bottom: 20px; padding: 10px; border: 2px solid red; border-radius: 4px; text-align: center;">
+                    
+                    <button type="submit" style="background-color: red; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s;" onmouseover="this.style.backgroundColor='darkred'" onmouseout="this.style.backgroundColor='red'">
+                        🗑️ Confirmar Eliminación
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <table class="tabla-admin">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Imagen</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Stock Real</th>
+                    <th>Salida Rápida</th>
+                    <th style="text-align: center;">Modificar</th> </tr>
+            </thead>
+            <tbody id="cuerpo-tabla-admin">
+                </tbody>
+        </table>
+    </main>
+
+    <script>
+        // Función para cargar los datos en la tabla (Reutilizamos la API que ya tienen)
+        // Variable para guardar los datos y usarlos en la edición
+        let inventarioGlobal = []; 
+
+        async function cargarInventarioAdmin() {
+            try {
+                const respuesta = await fetch('/api/productos');
+                inventarioGlobal = await respuesta.json(); // Guardamos el respaldo
+                
+                const tbody = document.getElementById('cuerpo-tabla-admin');
+                tbody.innerHTML = '';
+
+                inventarioGlobal.forEach(p => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${p.idProducto}</td>
+                            <td><img src="${p.imagenUrlProducto || 'https://via.placeholder.com/50'}" style="width: 50px; border-radius: 5px;"></td>
+                            <td><strong>${p.nombreProducto}</strong></td>
+                            <td>${p.nombreCategoria || 'General'}</td>
+                            <td>$${p.precioProducto}</td>
+                            <td>
+                                <span style="font-size: 1.2rem; font-weight: bold; color: ${p.stockProducto < 5 ? 'red' : 'green'};">${p.stockProducto}</span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 5px; align-items: center;">
+                                    <input type="number" id="salida-${p.idProducto}" value="1" min="1" max="${p.stockProducto}" style="width: 50px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+                                    <button class="btn-descontar" onclick="procesarSalidaManual(${p.idProducto}, '${p.nombreProducto}')">
+                                        📦 Salida
+                                    </button>
+                                </div>
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 15px; justify-content: center; align-items: center;">
+                                    
+                                    <button onclick="prepararEdicion(${p.idProducto})" style="background: none; border: none; cursor: pointer; font-size: 1.2rem;" title="Editar">
+                                        ✏️
+                                    </button>
+
+                                    <button onclick="prepararEliminacion(${p.idProducto}, '${p.nombreProducto}')" style="background: none; border: none; cursor: pointer; font-size: 1.2rem;" title="Eliminar">
+                                       🗑️
+                                    </button> 
+                                    
+                                    
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error al cargar inventario:", error);
+            }
+        }
+
+        // --- FUNCIONES PREPARATORIAS (FASE 3.5 Y FASE SEGURIDAD) ---
+        // --- LÓGICA DE EDICIÓN DE PRODUCTOS ---
+        function prepararEdicion(id) {
+            // Buscamos los datos del producto en nuestra variable global
+            const producto = inventarioGlobal.find(p => p.idProducto === id);
+            
+            if (producto) {
+                // Rellenamos el formulario automáticamente
+                document.getElementById('editar-id').value = producto.idProducto;
+                document.getElementById('editar-nombre').value = producto.nombreProducto;
+                document.getElementById('editar-descripcion').value = producto.descripcionProducto || '';
+                document.getElementById('editar-precio').value = producto.precioProducto;
+                document.getElementById('editar-stock').value = producto.stockProducto;
+                document.getElementById('editar-imagen').value = ''; // Limpiamos por si había algo antes
+
+                // Mostramos la ventana
+                document.getElementById('modal-editar-producto').style.display = 'flex';
+            }
+        }
+
+        function cerrarModalEditar() {
+            document.getElementById('modal-editar-producto').style.display = 'none';
+        }
+
+        async function enviarEdicion(evento) {
+            evento.preventDefault(); 
+            
+            const id = document.getElementById('editar-id').value;
+            const formData = new FormData();
+            
+            formData.append('nombre', document.getElementById('editar-nombre').value);
+            formData.append('descripcion', document.getElementById('editar-descripcion').value);
+            formData.append('precio', document.getElementById('editar-precio').value);
+            formData.append('stock', document.getElementById('editar-stock').value);
+
+            const inputImagen = document.getElementById('editar-imagen');
+            if (inputImagen.files.length > 0) {
+                formData.append('imagen', inputImagen.files[0]);
+            }
+
+            try {
+                const respuesta = await fetch(`/api/productos/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                const data = await respuesta.json();
+
+                if (respuesta.ok) {
+                    alert(data.mensaje);
+                    cerrarModalEditar();
+                    cargarInventarioAdmin(); // Recarga la tabla para ver los cambios
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (error) {
+                alert("Hubo un problema de conexion al intentar editar el producto.");
+            }
+        }
+
+        // --- LÓGICA DE ELIMINACIÓN SEGURA ---
+        function prepararEliminacion(id, nombre) {
+            document.getElementById('eliminar-id').value = id;
+            document.getElementById('texto-eliminar').innerHTML = `¿Estás segura de que deseas dar de baja <strong>"${nombre}"</strong>?<br><br>Esta acción borrará el producto del catálogo.`;
+            document.getElementById('eliminar-password').value = ''; // Limpiamos la contraseña anterior
+            
+            document.getElementById('modal-eliminar-producto').style.display = 'flex';
+        }
+
+        function cerrarModalEliminar() {
+            document.getElementById('modal-eliminar-producto').style.display = 'none';
+        }
+
+        async function enviarEliminacion(evento) {
+            evento.preventDefault();
+            
+            const id = document.getElementById('eliminar-id').value;
+            const passwordEscrita = document.getElementById('eliminar-password').value;
+
+            try {
+                // Hacemos la petición tipo DELETE
+                const respuesta = await fetch(`/api/productos/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: passwordEscrita })
+                });
+
+                const data = await respuesta.json();
+
+                if (respuesta.ok) {
+                    alert(data.mensaje);
+                    cerrarModalEliminar();
+                    cargarInventarioAdmin(); // Refresca la tabla para ver que ya no está
+                } else {
+                    // Si se equivocó de contraseña, el servidor mandará el error aquí
+                    alert("⚠️ " + data.error);
+                }
+            } catch (error) {
+                alert("Hubo un error al intentar comunicar con el servidor.");
+            }
+        }
+
+        async function procesarSalidaManual(id, nombre) {
+            const inputSalida = document.getElementById(`salida-${id}`);
+            const cantidadVendida = parseInt(inputSalida.value);
+
+            if (cantidadVendida < 1) {
+                alert("Debes registrar al menos 1 unidad vendida.");
+                return;
+            }
+
+            try {
+                // Hacemos la peticion a la nueva ruta PUT
+                const respuesta = await fetch(`/api/productos/descontar/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cantidad: cantidadVendida })
+                });
+
+                if (respuesta.ok) {
+                    alert(`¡Exito! Se descontaron ${cantidadVendida} unidades de "${nombre}".`);
+                    cargarInventarioAdmin(); // Recargamos la tabla al instante para ver el nuevo numero
+                } else {
+                    const dataError = await respuesta.json();
+                    alert("Error: " + dataError.error);
+                }
+            } catch (error) {
+                alert("Hubo un problema al conectar con el servidor.");
+            }
+        }
+        
+        // --- CONTROL DEL MODAL DE NUEVO PRODUCTO ---
+        function abrirModalProducto() {
+            document.getElementById('modal-nuevo-producto').style.display = 'flex';
+        }
+
+        function cerrarModalProducto() {
+            document.getElementById('modal-nuevo-producto').style.display = 'none';
+            document.getElementById('form-nuevo-producto').reset(); // Limpia las cajitas al cerrar
+        }
+
+        // --- FUNCIÓN DE AYUDA DE CATEGORÍAS ---
+        function mostrarAyudaCategorias() {
+            // Modifica los textos de abajo para que coincidan exacto con lo que tienes en tu base de datos
+            alert("Códigos de Categoría en el Sistema:<br><br><b>1</b> = Labiales<br><b>2</b> = Rostro<br><b>3</b> = Ojos");
+        }
+
+        async function enviarNuevoProducto(evento) {
+            evento.preventDefault(); // Evita que la página parpadee al enviar
+
+            // El truco de oro: Como vamos a enviar un archivo físico, no podemos usar JSON. 
+            // Usamos "FormData", que es el formato especial para subir imágenes.
+            const formData = new FormData();
+            formData.append('nombre', document.getElementById('nuevo-nombre').value);
+            formData.append('descripcion', document.getElementById('nuevo-descripcion').value);
+            formData.append('precio', document.getElementById('nuevo-precio').value);
+            formData.append('stock', document.getElementById('nuevo-stock').value);
+            formData.append('idCategoria', document.getElementById('nuevo-categoria').value);
+
+            // Atrapamos el archivo de imagen seleccionado
+            const inputImagen = document.getElementById('nuevo-imagen');
+            if (inputImagen.files.length > 0) {
+                formData.append('imagen', inputImagen.files[0]);
+            }
+
+            try {
+                // Hacemos la petición tipo POST a tu nueva ruta
+                const respuesta = await fetch('/api/productos', {
+                    method: 'POST',
+                    body: formData // Node.js (con Multer) descifrará esto
+                });
+
+                const data = await respuesta.json();
+
+                if (respuesta.ok) {
+                    alert(data.mensaje); // "¡Producto guardado con exito!"
+                    cerrarModalProducto();
+                    cargarInventarioAdmin(); // Refresca la tabla automáticamente
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (error) {
+                alert("Hubo un problema de conexion al intentar subir el producto.");
+            }
+        }
+
+        // --- INTERCEPTOR DE AVISOS MODERNOS PARA EL DASHBOARD ---
+        window.alert = function(mensaje) {
+            const overlay = document.createElement('div');
+            // Reutilizamos las clases CSS que Montse ya guardó en variables.css
+            overlay.className = 'modal-aviso-overlay'; 
+            
+            overlay.innerHTML = `
+                <div class="modal-aviso-box">
+                    <button class="modal-aviso-cerrar" id="btn-cerrar-modal">✕</button>
+                    <p class="modal-aviso-texto">${mensaje}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const cerrar = () => { if (document.body.contains(overlay)) document.body.removeChild(overlay); };
+            overlay.querySelector('#btn-cerrar-modal').onclick = cerrar;
+            overlay.onclick = (e) => { if (e.target === overlay) cerrar(); };
+        };
+
+        window.onload = cargarInventarioAdmin;
+    </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Pedido - Juvita Universitaria</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <style>
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; background: white; }
+        th, td { padding: 15px; border: 1px solid var(--rosa-pastel); text-align: center; }
+        th { background-color: var(--rojo-coral); color: white; }
+        .total-container { text-align: right; padding: 20px; font-size: 1.5rem; color: var(--rojo-coral); }
+    </style>
+</head>
+<body>
+    <header style="border-bottom: 2px solid var(--rojo-coral); padding: 20px; background-color: white;">
+        <h1 style="margin: 0; color: var(--negro-texto);">Juvita Universitaria</h1>
+        <nav style="margin-top: 10px;">
+            <a href="/paginas/index.html" style="text-decoration: none; color: var(--rojo-coral); font-weight: bold; margin-right: 15px;">🛍️ Catálogo</a>
+            <a href="/paginas/deseos.html" style="text-decoration: none; color: var(--rojo-coral); font-weight: bold; margin-right: 15px;">💖 Mis Deseos</a>
+            <a href="/paginas/carrito.html" id="nav-carrito" style="text-decoration: none; color: var(--rojo-coral); font-weight: bold;">🛒 Mi Carrito (0)</a>
+        </nav>
+    </header>
+
+    <main>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-carrito">
+                <!-- Se llena con JavaScript -->
+            </tbody>
+        </table>
+
+        <div class="total-container">
+            Total a pagar: <span id="monto-total">$0.00</span>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 50px; display: flex; justify-content: center; gap: 20px;">
+            <button onclick="vaciarCarrito()" style="background-color: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                🗑️ Vaciar Carrito
+            </button>
+
+            <button class="boton-accion" onclick="enviarWhatsApp()">
+                Finalizar Pedido vía WhatsApp
+            </button>
+        </div>   
+             
+    </main>
+
+    <!-- Importamos la lógica de Francisco -->
+    <script src="../js/controladores/Carrito.js"></script>
+    <script>
+        function renderizarTablaCarrito() {
+            const tabla = document.getElementById('cuerpo-carrito');
+            const totalTxt = document.getElementById('monto-total');
+            let totalAcumulado = 0;
+            tabla.innerHTML = "";
+
+            carrito.forEach(p => {
+            const subtotal = p.precio * p.cantidad;
+            totalAcumulado += subtotal;
+
+            // Extraemos la foto de la memoria (o ponemos una de relleno si falla)
+            const rutaFoto = p.imagenUrlProducto || p.imagen || 'https://via.placeholder.com/50';
+
+            tabla.innerHTML += `
+                <tr>
+                    <td style="display: flex; align-items: center; justify-content: center; gap: 15px; padding: 10px;">
+                        <img src="${rutaFoto}" alt="${p.nombre}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc;">
+                        <span style="text-align: left;">${p.nombre}</span>
+                    </td>
+                    
+                    <td>$${p.precio}</td>
+                    <td>${p.cantidad}</td>
+                    <td>$${subtotal}</td>
+                    <td><button onclick="eliminarDelCarrito(${p.id})" style="color: red; border: none; background: none; cursor: pointer; font-weight: bold;">Eliminar</button></td>
+                </tr>
+            `;
+        });
+            totalTxt.innerText = `$${totalAcumulado.toFixed(2)}`;
+        }
+
+        function enviarWhatsApp() {
+            if (carrito.length === 0) {
+                alert("Tu carrito está vacío.");
+                return;
+            }
+
+            // Aquí ponemos el número exacto que vi en tu captura
+            const telefono = "524861152578"; 
+            
+            // 1. Armamos el saludo inicial
+            let mensaje = "¡Holaaa!  Me gustaría realizar el siguiente pedido:\n\n";
+            let total = 0;
+
+            // 2. Recorremos el carrito para armar la lista
+            carrito.forEach(p => {
+                const subtotal = p.precio * p.cantidad;
+                total += subtotal;
+                // Usamos \n para los saltos de línea y viñetas para que se vea ordenado
+                mensaje += ` ${p.cantidad}x ${p.nombre} - $${subtotal.toFixed(2)}\n`;
+            });
+
+            // 3. Agregamos el total (los asteriscos * hacen que el texto se ponga en negritas en WhatsApp)
+            mensaje += `\n*Total a pagar: $${total.toFixed(2)}*\n\n`;
+            mensaje += "¡Quedo a la espera de su confirmación!";
+
+            // 4. EL TRUCO MÁGICO: Traducimos el texto al idioma que entienden los enlaces de internet
+            const mensajeCodificado = encodeURIComponent(mensaje);
+            
+            // 5. Armamos el enlace final y lo abrimos
+            const url = `https://wa.me/${telefono}?text=${mensajeCodificado}`;
+            window.open(url, '_blank');
+        }
+
+        window.onload = renderizarTablaCarrito;
+    </script>
+</body>
+</html>
